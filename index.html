@@ -31,14 +31,23 @@
     .task-start{border:1px solid var(--line);border-radius:8px;color:var(--text);background:var(--panel2);padding:5px 9px;font-weight:700}
     .task-start:not(:disabled):hover{border-color:var(--purple);color:var(--purple)}
     .task-start:disabled{cursor:default;opacity:.55}
-    .timer-panel,.day-log{padding:18px 20px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow)}
+    .timer-panel,.paused-timers,.day-log{padding:18px 20px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow)}
     .timer-panel{position:sticky;top:12px;z-index:2;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;border-left:3px solid var(--purple)}
     .timer-task{display:grid;gap:4px;flex:1 1 160px;min-width:0}
-    .timer-task strong,.log-detail{overflow-wrap:anywhere}
+    .timer-task strong,.paused-task,.log-detail{overflow-wrap:anywhere}
     .timer-state{color:var(--purple);font-weight:750;font-size:12px}
     .timer-panel[data-state="paused"] .timer-state{color:var(--muted)}
     .stopwatch{color:var(--text);font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
     .timer-actions,.log-header,.log-totals{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .paused-timers{margin-bottom:16px}
+    .paused-timers h3{font-size:14px;margin:0 0 6px}
+    .paused-timers ul{margin:0;padding:0;list-style:none}
+    .paused-timer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0}
+    .paused-timer + .paused-timer{border-top:1px solid var(--line)}
+    .paused-task{min-width:0;display:grid;gap:3px}
+    .paused-task small{color:var(--muted);white-space:pre-wrap}
+    .paused-timer .timer-actions{flex:none}
+    .paused-timer button:disabled{opacity:.55;cursor:default}
     .day-log{margin-top:26px}
     .log-header{justify-content:space-between}
     .log-header h3{margin:0;font-size:18px}
@@ -107,6 +116,10 @@
         <button type="button" class="secondary" id="timer-stop">停止</button>
       </div>
     </section>
+    <section class="paused-timers" id="paused-timers" aria-labelledby="paused-heading" hidden>
+      <h3 id="paused-heading">暂停任务</h3>
+      <ul id="paused-timer-list"></ul>
+    </section>
     <div class="filters"><div class="segments" aria-label="完成状态筛选"><button type="button" class="selected" data-filter="all">全部任务</button><button type="button" data-filter="pending">待完成</button><button type="button" data-filter="done">已完成</button></div><div class="filter-right"><select class="select-control" id="task-order" aria-label="任务排列方式"><option value="time">按时间排列</option><option value="priority">按优先级分组</option></select><select class="select-control" id="priority-filter" aria-label="筛选优先级"><option value="all">全部优先级</option><option value="P0">P0 · 必须完成</option><option value="P1">P1 · 重点推进</option><option value="P2">P2 · 日常任务</option><option value="P3">P3 · 弹性安排</option></select><button class="primary" id="add-task"><svg><use href="#i-plus"/></svg>添加任务</button></div></div>
     <div id="task-groups" aria-live="polite"></div>
     <section class="day-log" aria-labelledby="log-heading">
@@ -114,12 +127,12 @@
         <h3 id="log-heading">每日时间日志</h3>
         <button type="button" class="secondary" id="export-log"><svg aria-hidden="true"><use href="#i-download"/></svg>导出 Markdown</button>
       </div>
-      <div class="log-totals"><span>执行 <strong id="log-work-total">00:00</strong></span><span>暂停 <strong id="log-pause-total">00:00</strong></span></div>
+      <div class="log-totals"><span>执行 <strong id="log-work-total">00:00</strong></span><span title="统计有任务暂停且没有任务执行的时段">暂停空档 <strong id="log-pause-total">00:00</strong></span></div>
       <p id="log-empty">开始任务后，这里会显示实际时间和暂停原因。</p>
       <ol id="log-entries" class="log-entries"></ol>
     </section>
     <section class="reflection"><div class="reflection-heading"><svg><use href="#i-pen"/></svg>今天的复盘 / 留一句话</div><p>写下进展、遇到的问题，或者明天最想先解决的事。自动保存。</p><textarea id="reflection" placeholder="例：专利技术路线已经确定，明天重点核查创新性和证据链设计……" aria-label="今日复盘"></textarea></section>
-    <footer class="footer"><span>Built for focus, not busyness. <strong>DAYFLOW</strong></span><span>数据只保存在当前浏览器 · v1.1</span></footer>
+    <footer class="footer"><span>Built for focus, not busyness. <strong>DAYFLOW</strong></span><span>数据只保存在当前浏览器 · v1.2</span></footer>
   </main>
 </div>
 <dialog id="import-dialog"><div class="modal-head"><div><h2>导入每日计划口令</h2><p>把我给你的口令整段粘贴进来。网页自动解析日期、优先级、时间和任务。</p></div><button class="modal-close" data-close="import-dialog" aria-label="关闭"><svg><use href="#i-x"/></svg></button></div><div class="modal-body"><div class="code-example" id="example-code">DAYPLAN|2026-11-16|先完成重要交付
@@ -127,7 +140,7 @@
 10:00-11:30 | P0 | 完成重要任务 | 交付一个可讨论的版本
 14:00-15:00 | P1 | 项目调研 | 整理三个关键问题</div><div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="subtle-btn" id="fill-example" style="font-size:12px">试填示例口令</button></div><label class="form-label" for="import-text">粘贴口令</label><textarea class="field" id="import-text" spellcheck="false" placeholder="DAYPLAN|2026-11-16|今天的主题&#10;09:00-10:00 | P0 | 任务标题 | 具体要做什么"></textarea><div class="notice" id="import-message">重复导入同一天时，会更新任务列表，并尽量保留同名任务的勾选状态。</div><div class="modal-footer"><button class="secondary" data-close="import-dialog">取消</button><button class="primary" id="confirm-import"><svg><use href="#i-upload"/></svg>解析并导入</button></div></div></dialog>
 <dialog id="task-dialog"><div class="modal-head"><div><h2 id="task-modal-title">添加任务</h2><p>计划时间可以随时调整，实际用时由计时记录。</p></div><button class="modal-close" data-close="task-dialog" aria-label="关闭"><svg><use href="#i-x"/></svg></button></div><form id="task-form" class="modal-body"><label class="form-label" for="task-title">任务标题 *</label><input id="task-title" class="field" required maxlength="120" placeholder="例如：完成专利技术方案初稿"><div class="two-col"><div><label class="form-label" for="task-time">计划时间段</label><input id="task-time" class="field" maxlength="36" placeholder="09:00-10:30"></div><div><label class="form-label" for="task-priority">优先级</label><select id="task-priority" class="field"><option value="P0">P0 · 必须完成</option><option value="P1" selected>P1 · 重点推进</option><option value="P2">P2 · 日常任务</option><option value="P3">P3 · 弹性安排</option></select></div></div><label class="form-label" for="task-desc">完成标准 / 说明</label><textarea class="field" id="task-desc" rows="3" style="min-height:95px;font-family:inherit" placeholder="写清楚完成到什么程度才算完成"></textarea><div class="modal-footer" style="justify-content:space-between"><button type="button" id="delete-task" class="secondary text-danger" style="display:none">删除任务</button><span style="flex:1"></span><button type="button" class="secondary" data-close="task-dialog">取消</button><button class="primary" type="submit">保存任务</button></div></form></dialog>
-<dialog id="backup-dialog"><div class="modal-head"><div><h2>备份与恢复</h2><p>计划数据存在这个设备的浏览器里。导出 JSON 文件，可以在换电脑前备份。</p></div><button class="modal-close" data-close="backup-dialog" aria-label="关闭"><svg><use href="#i-x"/></svg></button></div><div class="modal-body"><div class="backup-line"><div><strong>导出所有计划</strong><p>备份历史计划、完成状态、复盘和时间日志。</p></div><button class="secondary" id="backup-export"><svg><use href="#i-download"/></svg>导出 JSON</button></div><div class="backup-line"><div><strong>从备份恢复</strong><p>恢复文件中的计划和日志。同日期的计划会覆盖，已有时间日志会保留。正在进行的计时会备份到导出时刻。</p></div><button class="secondary" id="backup-import-click"><svg><use href="#i-upload"/></svg>选择文件</button><input type="file" id="backup-import" accept=".json,application/json" hidden></div><div class="notice">提醒：GitHub Pages 只托管网页代码，不会把你的勾选记录同步到 GitHub。不同浏览器和设备之间需要用备份文件迁移。</div></div></dialog>
+<dialog id="backup-dialog"><div class="modal-head"><div><h2>备份与恢复</h2><p>计划数据存在这个设备的浏览器里。导出 JSON 文件，可以在换电脑前备份。</p></div><button class="modal-close" data-close="backup-dialog" aria-label="关闭"><svg><use href="#i-x"/></svg></button></div><div class="modal-body"><div class="backup-line"><div><strong>导出所有计划</strong><p>备份历史计划、完成状态、复盘和时间日志。</p></div><button class="secondary" id="backup-export"><svg><use href="#i-download"/></svg>导出 JSON</button></div><div class="backup-line"><div><strong>从备份恢复</strong><p>恢复文件中的计划和日志。同日期的计划会覆盖，已有时间日志会保留。执行中和暂停中的计时会备份到导出时刻。</p></div><button class="secondary" id="backup-import-click"><svg><use href="#i-upload"/></svg>选择文件</button><input type="file" id="backup-import" accept=".json,application/json" hidden></div><div class="notice">提醒：GitHub Pages 只托管网页代码，不会把你的勾选记录同步到 GitHub。不同浏览器和设备之间需要用备份文件迁移。</div></div></dialog>
 <dialog id="pause-dialog">
   <div class="modal-head"><div><h2>记录暂停原因</h2><p>暂停时间从你点击「暂停」时算起。</p></div><button type="button" class="modal-close" data-close="pause-dialog" aria-label="关闭"><svg><use href="#i-x"/></svg></button></div>
   <form id="pause-form" class="modal-body">
@@ -152,16 +165,39 @@ const timeLog = (() => {
     return localDate.getFullYear() === year && localDate.getMonth() + 1 === month && localDate.getDate() === day;
   }
 
-  function getActive(sessions) {
-    return sessions.find(session => session.stoppedAt === null);
+  function getRunning(sessions) {
+    return sessions.find(session => session.stoppedAt === null && session.segments.at(-1).kind === 'work');
   }
 
-  function transition(sessions, action, {now, id, task, planDate, note, sessionId}) {
+  function getPaused(sessions) {
+    return sessions.filter(session => session.stoppedAt === null && session.segments.at(-1).kind === 'pause')
+      .sort((a, b) => b.segments.at(-1).start - a.segments.at(-1).start);
+  }
+
+  function finishSegment(segment, now) {
+    // Keep segment boundaries ordered even if the device clock moves backward.
+    return {...segment, end: Math.max(now, segment.start)};
+  }
+
+  function stopSession(session, now) {
+    const last = finishSegment(session.segments.at(-1), now);
+    return {...session, stoppedAt: last.end, segments: [...session.segments.slice(0, -1), last]};
+  }
+
+  function closeOpenSessions(sessions, now) {
+    if (!isTimestamp(now)) return sessions;
+    return sessions.map(session => session.stoppedAt === null ? stopSession(session, now) : session);
+  }
+
+  function transition(sessions, action, {now, id, task, planDate, note, sessionId, segmentIndex}) {
     if (!isTimestamp(now)) return null;
-    const active = getActive(sessions);
+    const running = getRunning(sessions);
     if (action === 'start') {
-      if (active || !isId(id) || sessions.some(session => session.id === id)
-        || !isId(task?.id) || typeof task.title !== 'string' || !isDate(planDate)) return null;
+      if (running || !isId(id) || !isId(task?.id) || typeof task.title !== 'string' || !isDate(planDate)
+        || sessions.some(session => session.id === id
+          || (session.stoppedAt === null && session.taskId === task.id && session.planDate === planDate))) {
+        return null;
+      }
 
       return [...sessions, {
         id,
@@ -175,19 +211,22 @@ const timeLog = (() => {
       }];
     }
 
-    if (!active || active.id !== sessionId) return null;
-    const current = active.segments.at(-1);
-    const canPause = action === 'pause' && current.kind === 'work';
-    const canResume = action === 'resume' && current.kind === 'pause';
-    if (action !== 'stop' && !canPause && !canResume) return null;
+    const session = sessions.find(item => item.id === sessionId && item.stoppedAt === null);
+    if (!session || (segmentIndex !== undefined && segmentIndex !== session.segments.length - 1)) return null;
+    if (action === 'stop') {
+      return sessions.map(item => item === session ? stopSession(session, now) : item);
+    }
 
-    // Keep segment boundaries ordered even if the device clock moves backward.
-    const at = Math.max(now, current.start);
-    const segments = [...active.segments.slice(0, -1), {...current, end: at}];
-    if (canPause) segments.push({kind: 'pause', start: at, end: null, note: String(note ?? '').trim()});
-    if (canResume) segments.push({kind: 'work', start: at, end: null, note: ''});
-    const updated = {...active, stoppedAt: action === 'stop' ? at : null, segments};
-    return sessions.map(session => session === active ? updated : session);
+    const canPause = action === 'pause' && session === running;
+    const canResume = action === 'resume' && !running && session.segments.at(-1).kind === 'pause';
+    if (!canPause && !canResume) return null;
+
+    const last = finishSegment(session.segments.at(-1), now);
+    const next = canPause
+      ? {kind: 'pause', start: last.end, end: null, note: String(note ?? '').trim()}
+      : {kind: 'work', start: last.end, end: null, note: ''};
+    const updated = {...session, segments: [...session.segments.slice(0, -1), last, next]};
+    return sessions.map(item => item === session ? updated : item);
   }
 
   function setPauseNote(sessions, sessionId, segmentIndex, note) {
@@ -264,28 +303,29 @@ const timeLog = (() => {
     if (!Array.isArray(value)) return [];
     const sessions = [];
     const seen = new Set();
-    let mostRecentActive;
+    let mostRecentRunning;
     for (const item of value) {
       const session = sanitizeSession(item);
       if (!session || seen.has(session.id)) continue;
       seen.add(session.id);
       sessions.push(session);
-      if (session.stoppedAt === null && (!mostRecentActive || session.startedAt >= mostRecentActive.startedAt)) {
-        mostRecentActive = session;
+      const last = session.segments.at(-1);
+      if (session.stoppedAt === null && last.kind === 'work'
+        && (!mostRecentRunning || last.start >= mostRecentRunning.segments.at(-1).start)) {
+        mostRecentRunning = session;
       }
     }
-    for (const session of sessions) {
-      if (session.stoppedAt === null && session !== mostRecentActive) {
-        // Conflicting backup records retain their known history without inventing an end time.
-        const last = session.segments.at(-1);
-        last.end = last.start;
-        session.stoppedAt = last.end;
+    return sessions.map(session => {
+      const last = session.segments.at(-1);
+      if (session.stoppedAt === null && last.kind === 'work' && session !== mostRecentRunning) {
+        // Keep the logged history when a conflicting running session has no known stop time.
+        return stopSession(session, last.start);
       }
-    }
-    return sessions;
+      return session;
+    });
   }
 
-  return {getActive, transition, setPauseNote, entriesForDay, sanitizeSessions};
+  return {getRunning, getPaused, transition, setPauseNote, entriesForDay, sanitizeSessions, closeOpenSessions};
 })();
 
 const TIME_STORE = 'dayflow_v2_time_log';
@@ -331,13 +371,14 @@ function startTiming(taskId) {
   }, () => $('timer-pause').focus());
 }
 
-function controlTiming(action) {
-  const active = timeLog.getActive(sessions);
-  if (!active) return;
-  const options = {now: Date.now(), sessionId: active.id};
+function controlTiming(action, sessionId = $('active-timer').dataset.sessionId) {
+  const session = sessions.find(item => item.id === sessionId);
+  if (!session) return;
+  const options = {now: Date.now(), sessionId, segmentIndex: session.segments.length - 1};
   changeTiming(current => timeLog.transition(current, action, options), next => {
     if (action === 'pause') {
-      pauseTarget = {sessionId: active.id, segmentIndex: timeLog.getActive(next).segments.length - 1};
+      const session = next.find(item => item.id === sessionId);
+      pauseTarget = {sessionId, segmentIndex: session.segments.length - 1};
       $('pause-note').value = '';
       openDialog('pause-dialog');
       $('pause-note').focus();
@@ -371,44 +412,78 @@ function logTime(stamp, day) {
 }
 
 function timingTotals(entries) {
+  const boundaries = entries.flatMap(({start, end, kind}) => [
+    {at: start, kind, change: 1}, {at: end, kind, change: -1},
+  ]).sort((a, b) => a.at - b.at);
   const totals = {work: 0, pause: 0};
-  for (const entry of entries) totals[entry.kind] += entry.end - entry.start;
+  const open = {work: 0, pause: 0};
+  let previous = boundaries[0]?.at;
+  for (const {at, kind, change} of boundaries) {
+    if (open.work > 0) totals.work += at - previous;
+    else if (open.pause > 0) totals.pause += at - previous;
+    open[kind] += change;
+    previous = at;
+  }
   return totals;
 }
 
-function updateClocks(entries, active, now) {
+function updateClocks(entries, primary, now) {
   const totals = timingTotals(entries);
   $('hero-minutes').textContent = elapsed(totals.work);
   $('log-work-total').textContent = elapsed(totals.work);
   $('log-pause-total').textContent = elapsed(totals.pause);
-  if (active) {
-    const work = active.segments.reduce((sum, segment) =>
+  if (primary) {
+    const work = primary.segments.reduce((sum, segment) =>
       sum + (segment.kind === 'work' ? Math.max(0, (segment.end ?? now) - segment.start) : 0), 0);
     $('timer-elapsed').textContent = elapsed(work);
   }
-  const open = entries.find(entry => entry.open);
-  const row = $('log-entries').querySelector('[data-open]');
-  if (open && row) {
-    row.querySelector('time').textContent = `${logTime(open.start, selected)}–${logTime(open.end, selected)}`;
-    row.querySelector('.log-duration').textContent = elapsed(open.end - open.start);
+  const live = new Map(entries.filter(entry => entry.open).map(entry => [entry.session.id, entry]));
+  for (const row of $('log-entries').querySelectorAll('[data-open]')) {
+    const entry = live.get(row.dataset.open);
+    if (!entry) continue;
+    row.querySelector('time').textContent = `${logTime(entry.start, selected)}–${logTime(entry.end, selected)}`;
+    row.querySelector('.log-duration').textContent = elapsed(entry.end - entry.start);
   }
 }
 
+function renderPausedTimers(paused, running) {
+  const section = $('paused-timers');
+  section.hidden = !paused.length;
+  $('paused-timer-list').innerHTML = paused.map(session => `
+    <li class="paused-timer">
+      <div class="paused-task">
+        <strong>${esc(session.title)}</strong>
+        <small>${fmtDate(session.planDate, true)} · 已暂停${session.segments.at(-1).note ? ': ' + esc(session.segments.at(-1).note) : ''}</small>
+      </div>
+      <div class="timer-actions">
+        <button type="button" class="secondary" data-timer-action="resume" data-session-id="${esc(session.id)}"
+          aria-label="继续 ${esc(session.title)}" ${running ? 'disabled' : ''}>继续</button>
+        <button type="button" class="secondary" data-timer-action="stop" data-session-id="${esc(session.id)}"
+          aria-label="停止 ${esc(session.title)}">停止</button>
+      </div>
+    </li>`).join('');
+}
+
 function renderTiming(now = Date.now()) {
-  const active = timeLog.getActive(sessions);
-  $('active-timer').hidden = !active;
-  if (active) {
-    const paused = active.segments.at(-1).kind === 'pause';
-    $('active-timer').dataset.state = paused ? 'paused' : 'running';
-    $('timer-state').textContent = paused ? '已暂停' : '计时中';
-    $('timer-title').textContent = active.title;
-    $('timer-pause').hidden = paused;
-    $('timer-resume').hidden = !paused;
+  const running = timeLog.getRunning(sessions);
+  const paused = timeLog.getPaused(sessions);
+  const primary = running || paused[0];
+  const panel = $('active-timer');
+  panel.hidden = !primary;
+  panel.dataset.sessionId = primary?.id || '';
+  if (primary) {
+    panel.dataset.state = running ? 'running' : 'paused';
+    $('timer-state').textContent = running ? '计时中' : '已暂停';
+    $('timer-title').textContent = primary.title;
+    $('timer-pause').hidden = !running;
+    $('timer-resume').hidden = !!running;
   }
+  renderPausedTimers(running ? paused : paused.slice(1), running);
+
   const entries = timeLog.entriesForDay(sessions, selected, now);
   $('log-empty').hidden = entries.length > 0;
   $('log-entries').innerHTML = entries.map(({session, kind, start, end, note, open}) => `
-    <li class="log-entry" data-kind="${kind}" ${open ? 'data-open' : ''}>
+    <li class="log-entry" data-kind="${kind}" ${open ? `data-open="${esc(session.id)}"` : ''}>
       <time>${logTime(start, selected)}–${logTime(end, selected)}</time>
       <div class="log-detail">
         <div><span class="log-kind">${kind === 'work' ? '执行' : '暂停'}${open ? '中' : ''}</span><strong>${esc(session.title)}</strong></div>
@@ -416,8 +491,9 @@ function renderTiming(now = Date.now()) {
       </div>
       <span class="log-duration">${elapsed(end - start)}</span>
     </li>`).join('');
-  updateClocks(entries, active, now);
+  updateClocks(entries, primary, now);
 }
+
 
 function historyDates() {
   const dates = new Set(Object.keys(plans).filter(validDate));
@@ -459,7 +535,7 @@ function exportDayLog() {
     '',
     '## 实际时间线',
     '',
-    `- 执行 ${elapsed(totals.work)} · 暂停 ${elapsed(totals.pause)}`,
+    `- 执行 ${elapsed(totals.work)} · 暂停空档 ${elapsed(totals.pause)}（没有任务执行的暂停时段）`,
     ...entries.map(({session, kind, start, end, note, open}) => {
       const status = kind === 'work' ? '执行' : '暂停';
       const sourceDate = session.planDate === selected ? '' : `，原计划日期 ${session.planDate}`;
@@ -506,10 +582,11 @@ function duration(time) {
   return Math.max(0, +match[3] * 60 + +match[4] - (+match[1] * 60 + +match[2]));
 }
 
-function renderTask(task, active) {
+function renderTask(task, running, paused) {
   const id = esc(task.id);
   const title = esc(task.title);
-  const started = active?.taskId === task.id && active.planDate === selected;
+  const started = running?.taskId === task.id && running.planDate === selected;
+  const label = started ? '计时中' : paused ? (running ? '已暂停' : '继续') : '开始';
   const scheduled = Number.isFinite(plannedStart(task.time));
   return `
     <article class="task-card ${task.done ? 'done' : ''}" data-task-id="${id}" ${scheduled ? 'data-scheduled' : ''}>
@@ -524,8 +601,8 @@ function renderTask(task, active) {
       </div>
       <div class="task-side">
         <span class="priority-pill ${task.priority.toLowerCase()}">${task.priority}</span>
-        <button type="button" class="task-start" data-action="start" data-id="${id}"
-          aria-label="${started ? '当前计时' : '开始计时'}：${title}" ${active ? 'disabled' : ''}>${started ? '已开始' : '开始'}</button>
+        <button type="button" class="task-start" data-action="${paused ? 'resume' : 'start'}" data-id="${id}"
+          data-session-id="${esc(paused?.id || '')}" aria-label="${label}：${title}" ${running ? 'disabled' : ''}>${label}</button>
         <button type="button" class="more-btn" title="编辑任务" aria-label="编辑 ${title}" data-action="edit" data-id="${id}">${icon('more')}</button>
       </div>
     </article>`;
@@ -547,8 +624,10 @@ function renderTasks(tasks) {
     return;
   }
 
-  const active = timeLog.getActive(sessions);
-  const taskCards = items => items.map(task => renderTask(task, active)).join('');
+  const running = timeLog.getRunning(sessions);
+  const paused = new Map(timeLog.getPaused(sessions)
+    .filter(session => session.planDate === selected).map(session => [session.taskId, session]));
+  const taskCards = items => items.map(task => renderTask(task, running, paused.get(task.id))).join('');
   if (taskOrder === 'time') {
     target.innerHTML = `<div class="task-list timeline">${taskCards(visible)}</div>`;
     return;
@@ -738,19 +817,13 @@ function downloadFile(content, mimeType, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-function closeOpenSession(records, now) {
-  const active = timeLog.getActive(records);
-  if (!active) return records;
-  return timeLog.transition(records, 'stop', {now, sessionId: active.id}) || records;
-}
-
 function downloadJSON() {
   const exportedAt = new Date();
   const data = {
     format: 'dayflow-backup-v2',
     exportedAt: exportedAt.toISOString(),
     plans,
-    sessions: closeOpenSession(sessions, exportedAt.getTime()),
+    sessions: timeLog.closeOpenSessions(sessions, exportedAt.getTime()),
   };
   downloadFile(JSON.stringify(data, null, 2), 'application/json', `dayflow-backup-${today()}.json`);
   toast('已导出备份文件');
@@ -791,7 +864,7 @@ async function restoreJSON(file) {
     const incomingSessions = data.format === 'dayflow-backup-v2' ? timeLog.sanitizeSessions(data.sessions) : [];
     const exportedAt = Date.parse(data.exportedAt);
     const cutoff = Number.isFinite(exportedAt) && exportedAt >= 0 ? Math.min(exportedAt, Date.now()) : Date.now();
-    const restoredSessions = closeOpenSession(incomingSessions, cutoff);
+    const restoredSessions = timeLog.closeOpenSessions(incomingSessions, cutoff);
     if (!count && !restoredSessions.length) throw new Error('文件里没有有效的计划或日志');
     if (!confirm(`将恢复 ${count} 天的计划和 ${restoredSessions.length} 次计时。同日期的计划会覆盖，已有时间日志会保留。确定恢复？`)) return;
 
@@ -853,6 +926,10 @@ function init(){
  $('timer-pause').onclick = () => controlTiming('pause');
  $('timer-resume').onclick = () => controlTiming('resume');
  $('timer-stop').onclick = () => controlTiming('stop');
+ $('paused-timers').addEventListener('click', event => {
+   const button = event.target.closest('[data-timer-action]');
+   if (button && !button.disabled) controlTiming(button.dataset.timerAction, button.dataset.sessionId);
+ });
  $('pause-form').onsubmit = savePauseNote;
  $('pause-dialog').addEventListener('close', () => {
    pauseTarget = null;
@@ -871,8 +948,8 @@ function init(){
  });
  let lastClockDay = today();
  setInterval(() => {
-   const active = timeLog.getActive(sessions);
-   if (!active) return;
+   const primary = sessions.find(session => session.id === $('active-timer').dataset.sessionId);
+   if (!primary) return;
    const now = Date.now();
    const clockDay = dateKey(new Date(now));
    if (lastClockDay !== clockDay) {
@@ -880,7 +957,7 @@ function init(){
      renderTiming(now);
      renderHistory();
    } else {
-     updateClocks(timeLog.entriesForDay(sessions, selected, now), active, now);
+     updateClocks(timeLog.entriesForDay(sessions, selected, now), primary, now);
    }
  }, 1000);
 const theme=prefs.theme==='dark'?'dark':'light';document.body.dataset.theme=theme;document.querySelectorAll('.theme-toggle').forEach(b=>b.innerHTML=icon(theme==='dark'?'sun':'moon'));const importOpen=()=>openDialog('import-dialog'),backupOpen=()=>openDialog('backup-dialog');$('sidebar-import').onclick=importOpen;$('mobile-import').onclick=importOpen;$('sidebar-backup').onclick=backupOpen;$('mobile-backup').onclick=backupOpen;$('top-backup').onclick=backupOpen;$('sidebar-today').onclick=()=>setDay(today());$('history-refresh').onclick=()=>setDay(today());$('day-prev').onclick=()=>shiftDay(-1);$('day-next').onclick=()=>shiftDay(1);$('date-input').onchange=e=>setDay(e.target.value);$('add-task').onclick=()=>openTask();$('fill-example').onclick=()=>{$('import-text').value=$('example-code').textContent;$('import-text').focus()};$('confirm-import').onclick=tryImport;$('task-form').onsubmit=saveTask;$('delete-task').onclick=deleteTask;$('backup-export').onclick=downloadJSON;$('backup-import-click').onclick=()=>$('backup-import').click();$('backup-import').onchange=e=>restoreJSON(e.target.files[0]);
@@ -892,7 +969,7 @@ const theme=prefs.theme==='dark'?'dark':'light';document.body.dataset.theme=them
  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('selected',x===b));render()});
  document.querySelectorAll('.theme-toggle').forEach(b=>b.onclick=()=>{let t=document.body.dataset.theme==='light'?'dark':'light';document.body.dataset.theme=t;prefs.theme=t;savePrefs();document.querySelectorAll('.theme-toggle').forEach(x=>x.innerHTML=icon(t==='dark'?'sun':'moon'))});
  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeDialog(b.dataset.close));
- $('task-groups').addEventListener('click',e=>{const btn=e.target.closest('[data-action]');if(btn){if(btn.dataset.action==='toggle')toggle(btn.dataset.id);else if(btn.dataset.action==='edit')openTask(btn.dataset.id);else if(btn.dataset.action==='edit-time')openTask(btn.dataset.id,true);else if(btn.dataset.action==='start')startTiming(btn.dataset.id);return}if(e.target.closest('#empty-import'))importOpen();if(e.target.closest('#empty-add'))openTask();if(e.target.closest('#reset-filters')){filter='all';priorityFilter='all';$('priority-filter').value='all';document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('selected',x.dataset.filter==='all'));render()}});
+ $('task-groups').addEventListener('click',e=>{const btn=e.target.closest('[data-action]');if(btn){if(btn.dataset.action==='toggle')toggle(btn.dataset.id);else if(btn.dataset.action==='edit')openTask(btn.dataset.id);else if(btn.dataset.action==='edit-time')openTask(btn.dataset.id,true);else if(btn.dataset.action==='start')startTiming(btn.dataset.id);else if(btn.dataset.action==='resume')controlTiming('resume',btn.dataset.sessionId);return}if(e.target.closest('#empty-import'))importOpen();if(e.target.closest('#empty-add'))openTask();if(e.target.closest('#reset-filters')){filter='all';priorityFilter='all';$('priority-filter').value='all';document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('selected',x.dataset.filter==='all'));render()}});
  $('history-list').addEventListener('click',e=>{const b=e.target.closest('[data-history]');if(b)setDay(b.dataset.history)});
  document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='i'){e.preventDefault();importOpen()}});
  render();}
