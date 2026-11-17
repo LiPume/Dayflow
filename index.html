@@ -58,9 +58,10 @@
     .log-entry{display:grid;grid-template-columns:minmax(150px,auto) minmax(0,1fr) auto;align-items:start;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
     .log-entry time,.log-duration{font-size:12px;font-variant-numeric:tabular-nums}
     .log-detail{display:grid;gap:5px}
-    .log-edit-end{justify-self:start;min-height:24px;padding:0;color:var(--purple);font-size:12px}
-    #edit-end-dialog [hidden]{display:none}
-    #edit-end-form .modal-footer{flex-wrap:wrap}
+    .log-edit-actions{display:flex;gap:0 12px;flex-wrap:wrap}
+    .log-edit-time{justify-self:start;min-height:24px;padding:0;color:var(--purple);font-size:12px}
+    #edit-time-dialog [hidden]{display:none}
+    #edit-time-form .modal-footer{flex-wrap:wrap}
     .log-note{color:var(--muted);font-size:12px;white-space:pre-wrap}
     .log-kind{color:var(--purple);font-size:12px;margin-right:6px}
     .log-entry[data-kind="pause"] .log-kind{color:var(--muted)}
@@ -111,7 +112,11 @@
     <section class="hero" aria-label="今日进度"><div class="hero-left"><div class="kicker">TODAY'S MOMENTUM</div><h2 id="hero-title">把计划变成行动。</h2><div class="hero-foot"><span><svg><use href="#i-check"/></svg><b id="hero-done">0 / 0</b> 项任务完成</span><span><svg><use href="#i-clock"/></svg><b id="hero-minutes">00:00</b> 实际用时</span></div><div class="bar"><div class="bar-inner" id="hero-bar"></div></div></div><div class="hero-right"><div class="donut" id="hero-donut"><div class="donut-hole"><div class="donut-num" id="hero-percent">0%</div><div class="donut-label">COMPLETED</div></div></div></div></section>
     <section class="workspace-head"><div><h3>每日任务清单</h3><p id="day-subtitle">今天，把注意力留给重要的事。</p></div><div class="date-controls"><button class="icon-btn" id="day-prev" aria-label="前一天" title="前一天"><svg><use href="#i-arrow-left"/></svg></button><input class="date-picker" type="date" id="date-input" aria-label="选择日期"><button class="icon-btn" id="day-next" aria-label="后一天" title="后一天"><svg><use href="#i-arrow-right"/></svg></button></div></section>
     <section class="timer-panel" id="active-timer" aria-label="当前计时" hidden>
-      <div class="timer-task"><span class="timer-state" id="timer-state"></span><strong id="timer-title"></strong></div>
+      <div class="timer-task">
+        <span class="timer-state" id="timer-state"></span>
+        <strong id="timer-title"></strong>
+        <button type="button" class="subtle-btn log-edit-time" id="timer-edit-start" data-edit-start>修改开始时间</button>
+      </div>
       <time class="stopwatch" id="timer-elapsed">00:00</time>
       <div class="timer-actions">
         <button type="button" class="secondary" id="timer-pause">暂停</button>
@@ -135,7 +140,7 @@
       <ol id="log-entries" class="log-entries"></ol>
     </section>
     <section class="reflection"><div class="reflection-heading"><svg><use href="#i-pen"/></svg>今天的复盘 / 留一句话</div><p>写下进展、遇到的问题，或者明天最想先解决的事。自动保存。</p><textarea id="reflection" placeholder="例：专利技术路线已经确定，明天重点核查创新性和证据链设计……" aria-label="今日复盘"></textarea></section>
-    <footer class="footer"><span>Built for focus, not busyness. <strong>DAYFLOW</strong></span><span>数据只保存在当前浏览器 · v1.3</span></footer>
+    <footer class="footer"><span>Built for focus, not busyness. <strong>DAYFLOW</strong></span><span>数据只保存在当前浏览器 · v1.4</span></footer>
   </main>
 </div>
 <dialog id="import-dialog"><div class="modal-head"><div><h2>导入每日计划口令</h2><p>把我给你的口令整段粘贴进来。网页自动解析日期、优先级、时间和任务。</p></div><button class="modal-close" data-close="import-dialog" aria-label="关闭"><svg><use href="#i-x"/></svg></button></div><div class="modal-body"><div class="code-example" id="example-code">DAYPLAN|2026-11-16|先完成重要交付
@@ -152,20 +157,20 @@
     <div class="modal-footer"><button type="button" class="secondary" data-close="pause-dialog">跳过</button><button type="submit" class="primary">保存原因</button></div>
   </form>
 </dialog>
-<dialog id="edit-end-dialog" aria-labelledby="edit-end-heading">
+<dialog id="edit-time-dialog" aria-labelledby="edit-time-heading">
   <div class="modal-head">
-    <div><h2 id="edit-end-heading">修改结束时间</h2><p id="edit-end-context"></p></div>
-    <button type="button" class="modal-close" data-close="edit-end-dialog" aria-label="关闭"><svg><use href="#i-x"/></svg></button>
+    <div><h2 id="edit-time-heading"></h2><p id="edit-time-context"></p></div>
+    <button type="button" class="modal-close" data-close="edit-time-dialog" aria-label="关闭"><svg><use href="#i-x"/></svg></button>
   </div>
-  <form id="edit-end-form" class="modal-body">
-    <label class="form-label" for="edit-end-time">实际结束时间</label>
-    <input id="edit-end-time" type="datetime-local" class="field" step="1" required aria-describedby="recorded-end-time">
-    <p class="notice">点击「停止」的时间 <time id="recorded-end-time"></time></p>
-    <p class="notice error" id="edit-end-error" role="alert" hidden>请输入开始计时至当前时间之间的有效日期和时间。</p>
+  <form id="edit-time-form" class="modal-body">
+    <label class="form-label" id="edit-time-label" for="edit-time-value"></label>
+    <input id="edit-time-value" type="datetime-local" class="field" step="1" required aria-describedby="recorded-time-hint">
+    <p class="notice" id="recorded-time-hint"><span id="recorded-time-label"></span> <time id="recorded-time"></time></p>
+    <p class="notice error" id="edit-time-error" role="alert" hidden></p>
     <div class="modal-footer">
-      <button type="button" class="secondary" id="reset-end-time" hidden>恢复停止时间</button>
-      <button type="button" class="secondary" data-close="edit-end-dialog">取消</button>
-      <button type="submit" class="primary">保存结束时间</button>
+      <button type="button" class="secondary" id="reset-recorded-time" hidden></button>
+      <button type="button" class="secondary" data-close="edit-time-dialog">取消</button>
+      <button type="submit" class="primary" id="edit-time-submit"></button>
     </div>
   </form>
 </dialog>
@@ -200,7 +205,7 @@ const timeLog = (() => {
   }
 
   function stopSession(session, now) {
-    const last = finishSegment(session.segments.at(-1), now);
+    const last = finishSegment(session.segments.at(-1), Math.max(now, effectiveStart(session)));
     return {...session, stoppedAt: last.end, segments: [...session.segments.slice(0, -1), last]};
   }
 
@@ -258,18 +263,58 @@ const timeLog = (() => {
     return sessions.map(item => item === session ? {...session, segments} : item);
   }
 
+  function effectiveStart(session) {
+    return session.startOverride?.at ?? session.startedAt;
+  }
+
   function effectiveStop(session) {
     return session.stoppedAt === null ? null : session.endOverride?.at ?? session.stoppedAt;
   }
 
-  function setEndTime(sessions, sessionId, endOverrideAt, now) {
-    const session = sessions.find(item => item.id === sessionId && item.stoppedAt !== null);
-    if (!session || !isTimestamp(now)) return null;
-    if (endOverrideAt !== null && (!isTimestamp(endOverrideAt) || endOverrideAt < session.startedAt
-      || endOverrideAt > now)) return null;
+  function setStartTime(sessions, sessionId, at, now) {
+    const session = sessions.find(item => item.id === sessionId);
+    if (!session || !isTimestamp(now) || (at !== null && (!isTimestamp(at) || at > now))) return null;
 
-    const updated = {...session, endOverride: {at: endOverrideAt, editedAt: now}};
+    const stop = effectiveStop(session);
+    if (stop !== null && (at ?? session.startedAt) > stop) return null;
+
+    const updated = {...session, startOverride: {at, editedAt: now}};
     return sessions.map(item => item === session ? updated : item);
+  }
+
+  function setEndTime(sessions, sessionId, at, now) {
+    const session = sessions.find(item => item.id === sessionId && item.stoppedAt !== null);
+    if (!session || !isTimestamp(now) || (at !== null && (!isTimestamp(at) || at > now))) return null;
+    if ((at ?? session.stoppedAt) < effectiveStart(session)) return null;
+
+    const updated = {...session, endOverride: {at, editedAt: now}};
+    return sessions.map(item => item === session ? updated : item);
+  }
+
+  function effectiveSegments(session, now) {
+    if (!isTimestamp(now)) return [];
+    const begin = effectiveStart(session);
+    const stop = effectiveStop(session);
+    const startEdited = begin !== session.startedAt;
+    const stopEdited = stop !== session.stoppedAt;
+    if (begin === stop && (startEdited || stopEdited)) {
+      const first = session.segments[0];
+      const segment = startEdited ? session.segments.filter(item => item.start <= begin).at(-1) ?? first : first;
+      return [{kind: segment.kind, start: begin, end: begin, note: segment.note, open: false}];
+    }
+
+    const segments = [];
+    for (const [index, {kind, start, end, note}] of session.segments.entries()) {
+      if (stopEdited && index > 0 && start >= stop) break;
+
+      const from = index === 0 ? begin : Math.max(start, begin);
+      const recordedEnd = end ?? Math.max(from, now);
+      const last = index === session.segments.length - 1;
+      const to = stopEdited ? (last ? stop : Math.min(recordedEnd, stop)) : recordedEnd;
+      if (to < from || (startEdited && to === from && start < begin && end !== null)) continue;
+      segments.push({kind, start: from, end: to, note, open: end === null});
+    }
+    return segments;
   }
 
   function entriesForDay(sessions, date, now) {
@@ -282,29 +327,29 @@ const timeLog = (() => {
 
     for (const session of sessions) {
       const stop = effectiveStop(session);
-      if (session.startedAt >= dayEnd || (stop !== null && stop < dayStart)) continue;
-      const corrected = stop !== session.stoppedAt;
-      for (const [index, {kind, start, end, note}] of session.segments.entries()) {
-        if (corrected && index > 0 && start >= stop) break;
-
-        const recordedEnd = end ?? Math.max(start, now);
-        const last = index === session.segments.length - 1;
-        const effectiveEnd = corrected ? (last ? stop : Math.min(recordedEnd, stop)) : recordedEnd;
-        const instant = start === effectiveEnd;
-        if (start >= dayEnd || effectiveEnd < dayStart || (!instant && effectiveEnd === dayStart)) continue;
+      if (effectiveStart(session) >= dayEnd || (stop !== null && stop < dayStart)) continue;
+      for (const segment of effectiveSegments(session, now)) {
+        const {start, end} = segment;
+        const instant = start === end;
+        if (start >= dayEnd || end < dayStart || (!instant && end === dayStart)) continue;
 
         entries.push({
+          ...segment,
           session,
-          kind,
           start: Math.max(start, dayStart),
-          end: Math.min(effectiveEnd, dayEnd),
-          note,
-          open: end === null && now >= dayStart && now < dayEnd,
+          end: Math.min(end, dayEnd),
+          open: segment.open && now >= dayStart && now < dayEnd,
         });
       }
     }
 
     return entries.sort((a, b) => a.start - b.start);
+  }
+
+  function sanitizeOverride(override) {
+    if (!isTimestamp(override?.editedAt)) return undefined;
+    if (override.at !== null && (!isTimestamp(override.at) || override.at > override.editedAt)) return undefined;
+    return {at: override.at, editedAt: override.editedAt};
   }
 
   function sanitizeSession(session) {
@@ -327,10 +372,23 @@ const timeLog = (() => {
     }
     if (nextStart !== session.stoppedAt) return null;
 
-    const {endOverride} = session;
-    const hasOverride = session.stoppedAt !== null && isTimestamp(endOverride?.editedAt)
-      && (endOverride.at === null || (isTimestamp(endOverride.at)
-        && endOverride.at >= session.startedAt && endOverride.at <= endOverride.editedAt));
+    let startOverride = sanitizeOverride(session.startOverride);
+    let endOverride = session.stoppedAt === null ? undefined : sanitizeOverride(session.endOverride);
+    const start = startOverride?.at ?? session.startedAt;
+    const stop = endOverride?.at ?? session.stoppedAt;
+    if (stop !== null && start > stop) {
+      // A backup may combine two edits from different versions. Prefer a newer bound that works on its own.
+      const startFits = start <= session.stoppedAt;
+      const stopFits = stop >= session.startedAt;
+      if (startFits && (!stopFits || (startOverride?.editedAt ?? -1) >= (endOverride?.editedAt ?? -1))) {
+        endOverride = undefined;
+      } else if (stopFits) {
+        startOverride = undefined;
+      } else {
+        startOverride = undefined;
+        endOverride = undefined;
+      }
+    }
     return {
       id: session.id,
       taskId: session.taskId,
@@ -340,7 +398,8 @@ const timeLog = (() => {
       startedAt: session.startedAt,
       stoppedAt: session.stoppedAt,
       segments,
-      ...(hasOverride ? {endOverride: {at: endOverride.at, editedAt: endOverride.editedAt}} : {}),
+      ...(startOverride ? {startOverride} : {}),
+      ...(endOverride ? {endOverride} : {}),
     };
   }
 
@@ -372,7 +431,7 @@ const timeLog = (() => {
 
   return {
     getRunning, getPaused, transition, setPauseNote, entriesForDay, sanitizeSessions, closeOpenSessions,
-    effectiveStop, setEndTime,
+    effectiveStart, effectiveStop, effectiveSegments, setStartTime, setEndTime,
   };
 })();
 
@@ -392,7 +451,7 @@ function withDataLock(callback) {
   return navigator.locks ? navigator.locks.request('dayflow-local-data', callback) : Promise.resolve().then(callback);
 }
 
-async function changeTiming(change, success) {
+async function changeTiming(change, success, rejected = () => toast('计时状态已变化，请查看当前计时')) {
   try {
     const next = await withDataLock(() => {
       const current = readSessions();
@@ -403,7 +462,7 @@ async function changeTiming(change, success) {
     });
     render();
     if (next) success?.(next);
-    else toast('计时状态已变化，请查看当前计时');
+    else rejected();
   } catch (error) {
     toast('无法保存时间日志，请检查浏览器存储');
   }
@@ -433,7 +492,7 @@ function controlTiming(action, sessionId = $('active-timer').dataset.sessionId) 
     } else if (action === 'resume') {
       $('timer-pause').focus();
     } else if (action === 'stop') {
-      toast('已停止计时，可在每日时间日志修改结束时间');
+      toast('已停止计时，可在每日时间日志修改起止时间');
     }
   });
 }
@@ -466,51 +525,84 @@ function localDateTime(stamp) {
   return `${day}T${logTime(stamp, day)}`;
 }
 
-function openEndEditor(sessionId) {
-  const session = sessions.find(item => item.id === sessionId && item.stoppedAt !== null);
-  if (!session) return;
+function editableTime(session, edge) {
+  const start = timeLog.effectiveStart(session);
+  const stop = timeLog.effectiveStop(session);
+  if (edge === 'start') {
+    return {name: '开始', button: '开始', recorded: session.startedAt, effective: start, min: 0, max: stop};
+  }
+  return stop === null ? null
+    : {name: '结束', button: '停止', recorded: session.stoppedAt, effective: stop, min: start, max: null};
+}
 
-  const effective = timeLog.effectiveStop(session);
-  const input = $('edit-end-time');
-  input.min = localDateTime(session.startedAt);
-  input.max = localDateTime(Math.max(Date.now(), effective, session.startedAt));
+function openTimeEditor(sessionId, edge) {
+  const session = sessions.find(item => item.id === sessionId);
+  const boundary = session && editableTime(session, edge);
+  if (!boundary) return;
+
+  const {name, button, recorded, effective, min, max} = boundary;
+  const dialog = $('edit-time-dialog');
+  const input = $('edit-time-value');
+  dialog.dataset.sessionId = sessionId;
+  dialog.dataset.edge = edge;
+  input.min = localDateTime(min);
+  input.max = localDateTime(Math.max(effective, Math.min(Date.now(), max ?? Infinity)));
   input.value = localDateTime(effective);
-  $('edit-end-dialog').dataset.sessionId = sessionId;
-  $('edit-end-context').textContent = session.title;
-  $('recorded-end-time').textContent = localDateTime(session.stoppedAt).replace('T', ' ');
-  $('reset-end-time').hidden = effective === session.stoppedAt;
-  $('edit-end-error').hidden = true;
-  openDialog('edit-end-dialog');
+  $('edit-time-heading').textContent = `修改${name}时间`;
+  $('edit-time-context').textContent = session.title;
+  $('edit-time-label').textContent = `实际${name}时间`;
+  $('recorded-time-label').textContent = `点击「${button}」的时间`;
+  $('recorded-time').textContent = localDateTime(recorded).replace('T', ' ');
+  const reset = $('reset-recorded-time');
+  reset.textContent = `恢复${button}时间`;
+  reset.hidden = effective === recorded;
+  $('edit-time-submit').textContent = `保存${name}时间`;
+  $('edit-time-error').hidden = true;
+  openDialog('edit-time-dialog');
   input.focus();
 }
 
-function updateEndTime(end) {
-  const sessionId = $('edit-end-dialog').dataset.sessionId;
-  const now = Date.now();
-  changeTiming(current => timeLog.setEndTime(current, sessionId, end, now), () => {
-    closeDialog('edit-end-dialog');
-    toast(end === null ? '已恢复停止时间' : '已更新结束时间');
-  });
+function timeEditError(message) {
+  const error = $('edit-time-error');
+  error.textContent = message;
+  error.hidden = false;
 }
 
-function saveEditedEnd(event) {
+function updateRecordedTime(value) {
+  const {sessionId, edge} = $('edit-time-dialog').dataset;
+  const edit = edge === 'start' ? timeLog.setStartTime : timeLog.setEndTime;
+  const field = edge === 'start' ? '开始' : '结束';
+  const original = edge === 'start' ? '开始' : '停止';
+  changeTiming(current => edit(current, sessionId, value, Date.now()), () => {
+    closeDialog('edit-time-dialog');
+    toast(value === null ? `已恢复${original}时间` : `已更新${field}时间`);
+  }, () => timeEditError(value === null
+    ? '恢复原始时刻会使开始时间晚于结束时间。请先调整另一项时间。'
+    : '时间未保存。请检查开始和结束时间的顺序。'));
+}
+
+function saveEditedTime(event) {
   event.preventDefault();
-  const sessionId = $('edit-end-dialog').dataset.sessionId;
-  const session = sessions.find(item => item.id === sessionId && item.stoppedAt !== null);
-  if (!session) return;
-  const value = $('edit-end-time').value;
+  const {sessionId, edge} = $('edit-time-dialog').dataset;
+  const session = sessions.find(item => item.id === sessionId);
+  const boundary = session && editableTime(session, edge);
+  if (!boundary) return;
+  const value = $('edit-time-value').value;
   const localValue = value.length === 16 ? value + ':00' : value;
-  if (localValue === localDateTime(timeLog.effectiveStop(session))) {
-    closeDialog('edit-end-dialog');
+  if (localValue === localDateTime(boundary.effective)) {
+    closeDialog('edit-time-dialog');
     return;
   }
+
   const parsed = Date.parse(localValue);
+  const max = Math.min(boundary.max ?? Infinity, Date.now());
   if (!Number.isFinite(parsed) || localDateTime(parsed) !== localValue
-    || parsed > Date.now() || parsed < Math.floor(session.startedAt / 1000) * 1000) {
-    $('edit-end-error').hidden = false;
+    || parsed > max || parsed < Math.floor(boundary.min / 1000) * 1000) {
+    timeEditError(edge === 'start' ? '开始时间须在结束时间和当前时刻之前，或与其相同。'
+      : '结束时间须在开始时间与当前时刻之间。');
     return;
   }
-  updateEndTime(Math.max(parsed, session.startedAt));
+  updateRecordedTime(Math.max(parsed, boundary.min));
 }
 
 
@@ -536,8 +628,8 @@ function updateClocks(entries, primary, now) {
   $('log-work-total').textContent = elapsed(totals.work);
   $('log-pause-total').textContent = elapsed(totals.pause);
   if (primary) {
-    const work = primary.segments.reduce((sum, segment) =>
-      sum + (segment.kind === 'work' ? Math.max(0, (segment.end ?? now) - segment.start) : 0), 0);
+    const work = timeLog.effectiveSegments(primary, now).reduce((sum, segment) =>
+      sum + (segment.kind === 'work' ? segment.end - segment.start : 0), 0);
     $('timer-elapsed').textContent = elapsed(work);
   }
   const live = new Map(entries.filter(entry => entry.open).map(entry => [entry.session.id, entry]));
@@ -574,6 +666,7 @@ function renderTiming(now = Date.now()) {
   const panel = $('active-timer');
   panel.hidden = !primary;
   panel.dataset.sessionId = primary?.id || '';
+  $('timer-edit-start').dataset.editStart = panel.dataset.sessionId;
   if (primary) {
     panel.dataset.state = running ? 'running' : 'paused';
     $('timer-state').textContent = running ? '计时中' : '已暂停';
@@ -588,16 +681,22 @@ function renderTiming(now = Date.now()) {
   const lastVisible = new Map(entries.map(entry => [entry.session.id, entry]));
   $('log-entries').innerHTML = entries.map(entry => {
     const {session, kind, start, end, note, open} = entry;
-    const editButton = session.stoppedAt !== null && lastVisible.get(session.id) === entry
-      ? `<button type="button" class="subtle-btn log-edit-end" data-edit-end="${esc(session.id)}"
-          aria-label="修改 ${esc(session.title)} 的结束时间">修改结束时间</button>` : '';
+    const sessionId = esc(session.id);
+    const title = esc(session.title);
+    const editActions = lastVisible.get(session.id) === entry ? `
+        <div class="log-edit-actions">
+          <button type="button" class="subtle-btn log-edit-time" data-edit-start="${sessionId}"
+            aria-label="修改 ${title} 的开始时间">修改开始时间</button>
+          ${session.stoppedAt !== null ? `<button type="button" class="subtle-btn log-edit-time" data-edit-end="${sessionId}"
+            aria-label="修改 ${title} 的结束时间">修改结束时间</button>` : ''}
+        </div>` : '';
     return `
     <li class="log-entry" data-kind="${kind}" ${open ? `data-open="${esc(session.id)}"` : ''}>
       <time>${logTime(start, selected)}–${logTime(end, selected)}</time>
       <div class="log-detail">
         <div><span class="log-kind">${kind === 'work' ? '执行' : '暂停'}${open ? '中' : ''}</span><strong>${esc(session.title)}</strong></div>
         ${note ? `<span class="log-note">${esc(note)}</span>` : ''}
-        ${editButton}
+        ${editActions}
       </div>
       <span class="log-duration">${elapsed(end - start)}</span>
     </li>`;
@@ -610,12 +709,13 @@ function historyDates() {
   const dates = new Set(Object.keys(plans).filter(validDate));
   const now = Date.now();
   for (const session of sessions) {
-    const end = Math.max(session.startedAt, (timeLog.effectiveStop(session) ?? now) - 1);
+    const start = timeLog.effectiveStart(session);
+    const end = Math.max(start, (timeLog.effectiveStop(session) ?? now) - 1);
     const date = new Date(end);
     for (let days = 0; days < 12; days += 1) {
       dates.add(dateKey(date));
       date.setHours(0, 0, 0, -1);
-      if (date.getTime() < session.startedAt) break;
+      if (date.getTime() < start) break;
     }
   }
   return [...dates].sort().reverse().slice(0, 12);
@@ -998,10 +1098,15 @@ async function restoreJSON(file) {
             ? {...segment, note: other.note} : segment;
         });
         const mergedSession = {...base, segments};
-        if (mergedSession.stoppedAt !== null && (supplement.endOverride?.editedAt ?? -1) > (base.endOverride?.editedAt ?? -1)) {
-          mergedSession.endOverride = supplement.endOverride;
+        const newerEdits = {...mergedSession};
+        if ((supplement.startOverride?.editedAt ?? -1) > (base.startOverride?.editedAt ?? -1)) {
+          newerEdits.startOverride = supplement.startOverride;
         }
-        byId.set(session.id, mergedSession);
+        if (mergedSession.stoppedAt !== null && (supplement.endOverride?.editedAt ?? -1) > (base.endOverride?.editedAt ?? -1)) {
+          newerEdits.endOverride = supplement.endOverride;
+        }
+        const stop = timeLog.effectiveStop(newerEdits);
+        byId.set(session.id, stop === null || timeLog.effectiveStart(newerEdits) <= stop ? newerEdits : mergedSession);
       }
       const merged = [...byId.values()];
       const previousPlans = localStorage.getItem(STORE);
@@ -1051,13 +1156,16 @@ function init(){
    if (!$('timer-resume').hidden && !$('active-timer').hidden) $('timer-resume').focus();
  });
  $('export-log').onclick = exportDayLog;
+ $('timer-edit-start').onclick = event => openTimeEditor(event.currentTarget.dataset.editStart, 'start');
  $('log-entries').addEventListener('click', event => {
-   const button = event.target.closest('[data-edit-end]');
-   if (button) openEndEditor(button.dataset.editEnd);
+   const button = event.target.closest('[data-edit-start], [data-edit-end]');
+   if (!button) return;
+   if (button.dataset.editStart) openTimeEditor(button.dataset.editStart, 'start');
+   else openTimeEditor(button.dataset.editEnd, 'end');
  });
- $('edit-end-form').onsubmit = saveEditedEnd;
- $('edit-end-time').oninput = () => { $('edit-end-error').hidden = true; };
- $('reset-end-time').onclick = () => updateEndTime(null);
+ $('edit-time-form').onsubmit = saveEditedTime;
+ $('edit-time-value').oninput = () => { $('edit-time-error').hidden = true; };
+ $('reset-recorded-time').onclick = () => updateRecordedTime(null);
  window.addEventListener('storage', event => {
    if (![STORE, TIME_STORE, null].includes(event.key)) return;
    try {
